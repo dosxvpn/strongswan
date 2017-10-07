@@ -1,50 +1,48 @@
 #!/bin/sh -e
 
-if [ -e /etc/ipsec.d/ipsec.conf ]
-then
-    echo "Already initialized!"
+if [ -e /etc/ipsec.d/ipsec.conf ]; then
+    echo "VPN has already been setup!"
     exit 0
-else
-    echo "Initializing..."
 fi
 
+echo "Initializing..."
 VPN_P12_PASSWORD=$(head /dev/urandom | tr -dc A-Za-z0-9 | head -c 32 ; echo '')
 
 cat > /etc/ipsec.d/ipsec.conf <<_EOF_
 config setup
     uniqueids=never
-    charondebug="cfg 2, dmn 2, ike 2, net 2"
+    charondebug="ike 2, knl 2, cfg 2, net 2, esp 2, dmn 2,  mgr 2"
 conn %default
-    keyexchange=ike
-    dpdaction=clear
-    dpddelay=300s
+    fragmentation=yes
     rekey=no
+    dpdaction=clear
+    keyexchange=ikev2
+    compress=yes
+    dpddelay=35s
+    rekey=no
+    ike=${IKE_CIPHERS}
+    esp=${ESP_CIPHERS}
     left=%any
+    leftsubnet=0.0.0.0/0
     leftca=ca.cert.pem
     leftcert=server.cert.pem
-    leftsubnet=0.0.0.0/0
+    leftid="${VPN_DOMAIN}"
+    leftsendcert=always
+    leftauth=pubkey
     right=%any
     rightdns=${VPN_DNS}
     rightsourceip=${VPN_NETWORK}
     rightsubnets=${LAN_NETWORK}
-conn IPSec-IKEv2
-    keyexchange=ikev2
-    ike=aes256-sha256-modp1024,3des-sha1-modp1024,aes256-sha1-modp1024!
-    esp=aes256-sha256,3des-sha1,aes256-sha1!
-    leftid="${VPN_DOMAIN}"
-    leftsendcert=always
-    leftauth=pubkey
     rightauth=pubkey
     rightid="client@${VPN_DOMAIN}"
     rightcert=client.cert.pem
+conn IPSec-IKEv2
     auto=add
 _EOF_
-
 
 cat > /etc/ipsec.d/ipsec.secrets <<_EOF_
 : RSA server.pem
 _EOF_
-
 
 # gen ca key and cert
 ipsec pki --gen --outform pem > /etc/ipsec.d/private/ca.pem
@@ -84,8 +82,9 @@ openssl pkcs12 -export \
                -out /etc/ipsec.d/client.cert.p12 \
                -passout pass:${VPN_P12_PASSWORD}
 
-# gen mobileconfig for mac
+touch /etc/ipsec.d/triplets.dat
 
+# gen mobileconfig for mac
 UUID1=$(uuidgen)
 UUID2=$(uuidgen)
 UUID3=$(uuidgen)
