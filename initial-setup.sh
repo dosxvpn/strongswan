@@ -7,6 +7,7 @@ fi
 
 echo "Initializing..."
 VPN_P12_PASSWORD=$(head /dev/urandom | tr -dc A-Za-z0-9 | head -c 32 ; echo '')
+echo ${VPN_P12_PASSWORD} > /etc/ipsec.d/client.cert.p12.password
 
 cat > /etc/ipsec.d/ipsec.conf <<_EOF_
 config setup
