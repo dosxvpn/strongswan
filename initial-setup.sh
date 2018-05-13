@@ -21,7 +21,7 @@ conn %default
     dpdaction=clear
     keyexchange=ikev2
     compress=yes
-    dpddelay=35s
+    dpddelay=21600s
 
     ike=${IKE_CIPHERS}
     esp=${ESP_CIPHERS}
