@@ -1,4 +1,4 @@
-FROM alpine:3.8
+FROM alpine:3
 
 ENV VPN_DEVICE="eth0"
 ENV VPN_NETWORK_IPV4="192.168.99.0/24"
